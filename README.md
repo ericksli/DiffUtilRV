@@ -63,3 +63,26 @@
 因為這個 challenge 比較簡單，所以就不搞到太複雜。但如果規模再大的 project 應該要把不同 layer 的 entity class 分開。 如果全部 layer 都共用 `Employee` data class
 那只會愈來愈亂。例如加了不同的 annotation（Gson + Room 之類）再加上為了方便在 presentation layer 用再加上一些不會在 backend response 或 database 出現的
 property。
+
+---
+
+# Panel Talk 回應
+
+[Best practice Challenge for MVVM x RecyclerView Panel Talk](https://youtu.be/PFFsjwMPhp4?t=1994)
+
+- 那種逐個 property 寫 `get(Employee::xxx).isEqualTo` 是 [Strikt](https://strikt.io/) 的一項功能。如果當中有一個 property
+  錯誤時它會[清楚顯示那一部分有問題](https://strikt.io/wiki/traversing-subjects/) ，而不是放兩個 `toString` 要你自行比較。 但缺點是 assertion
+  會寫得比單純用 `assertEquals` 更長。這次的示範因為 `Employee` 太簡單所以看起來比較無謂，但去到複雜的清況（例如那個 class 有很多 property 要檢查但沒有 override `equals`
+  /`hashCode` 時就能充分發揮這種寫法的好處。
+- 排序我沒有寫 unit test 是因為那段 code 本來是原本 repo 提供的，本來沒有寫 unit test 那我就不寫了。不過我現在補回了。
+- 按照一般 Clean Architecture 的理解都會把 presentation、business logic、data I/O 分開。而我寫的 non-instrumentation test 都是 unit test 而不是
+  integration test，所以 `MainViewModel` 只會有一些測試在 view 觸發的事件時 LiveData 會有什麼東西發射出來，而
+  `ViewModel` 用到的 use case 都是 mock interface 而不是拿一個真實的 implementation 來測試。因為這個 project 太簡單，沒有特別的 logic，
+  所以很多地方都是左手交右手，test case 都是做一些很簡單的東西。而每個 layer 之間都是用 interface 隔開都是方便寫 unit testing 可以 mock interface。
+- Use case 直接轉用 lambda 寫雖然更簡潔，但應該會令 dependency injection 較難處理。
+- 其實 view binding 和 data binding 我都有用，data binding 是在 view holder 用了。
+- 那個 `OneOffEvent` 確實不是 thread safe，但因為現在穩定版仍未支援在 data binding 用 flow，所以維持用 `LiveData` 為主。現在有了
+  [`repeatOnLifecycle`](https://medium.com/androiddevelopers/migrating-from-livedata-to-kotlins-flow-379292f419fb) 可以 轉用
+  flow，所以現在已經刪走 `OneOffEvent`。
+- `RecyclerView` adapter constructor 傳了 `ViewModel` 是因為這樣做比較方便。因為大部分情況都不會在不同頁面共用 adapter。如果有這個需求 的話可以改傳 lambda 或
+  interface 處理 click listener。

@@ -1,26 +1,26 @@
 package com.example.diffutilrv.ui
 
-import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.example.diffutilrv.OneOffEvent
+import app.cash.turbine.test
 import com.example.diffutilrv.data.Employee
 import com.example.diffutilrv.data.EmployeeSortBy
 import com.example.diffutilrv.domain.GetEmployeeUseCase
-import com.jraska.livedata.test
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.impl.annotations.MockK
+import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Before
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import strikt.api.expectThat
+import strikt.assertions.isEmpty
+import strikt.assertions.isEqualTo
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 @RunWith(AndroidJUnit4::class)
 class MainViewModelTest {
-
-    @get:Rule
-    val instantTaskExecutorRule = InstantTaskExecutorRule()
 
     private lateinit var viewModel: MainViewModel
 
@@ -33,84 +33,100 @@ class MainViewModelTest {
     }
 
     @Test
-    fun `loadData sort by null without saved state`() {
+    fun `loadData sort by null without saved state`() = runBlockingTest {
         instantiateMainViewModel()
         val employees = listOf(
             Employee(2, "Employee 2", "Tester"),
             Employee(1, "Employee 1", "Developer"),
         )
         coEvery { getEmployeeUseCase(EmployeeSortBy.ROLE) } returns employees
-        val testObserver = viewModel.employees.test()
-        viewModel.loadData()
-        testObserver.assertValue(employees)
+        viewModel.employees.test {
+            viewModel.loadData()
+            expectThat(expectItem()).isEqualTo(emptyList())
+            expectThat(expectItem()).isEqualTo(employees)
+            expectThat(cancelAndConsumeRemainingEvents()).isEmpty()
+        }
     }
 
     @Test
-    fun `loadData sort by role without saved state`() {
+    fun `loadData sort by role without saved state`() = runBlockingTest {
         instantiateMainViewModel()
         val employees = emptyList<Employee>()
         coEvery { getEmployeeUseCase(EmployeeSortBy.ROLE) } returns employees
-        val testObserver = viewModel.employees.test()
-        viewModel.loadData(EmployeeSortBy.ROLE)
-        testObserver.assertValue(employees)
+        viewModel.employees.test {
+            viewModel.loadData(EmployeeSortBy.ROLE)
+            expectThat(expectItem()).isEqualTo(emptyList())
+            cancelAndConsumeRemainingEvents()
+        }
     }
 
     @Test
-    fun `loadData sort by name without saved state`() {
+    fun `loadData sort by name without saved state`() = runBlockingTest {
         instantiateMainViewModel()
         val employees = emptyList<Employee>()
         coEvery { getEmployeeUseCase(EmployeeSortBy.NAME) } returns employees
-        val testObserver = viewModel.employees.test()
-        viewModel.loadData(EmployeeSortBy.NAME)
-        testObserver.assertValue(employees)
+        viewModel.employees.test {
+            viewModel.loadData(EmployeeSortBy.NAME)
+            expectThat(expectItem()).isEqualTo(emptyList())
+            expectThat(cancelAndConsumeRemainingEvents()).isEmpty()
+        }
     }
 
     @Test
-    fun `loadData sort by null with saved state sort by name`() {
+    fun `loadData sort by null with saved state sort by name`() = runBlockingTest {
         instantiateMainViewModel(EmployeeSortBy.NAME)
         val employees = emptyList<Employee>()
         coEvery { getEmployeeUseCase(EmployeeSortBy.NAME) } returns employees
-        val testObserver = viewModel.employees.test()
-        viewModel.loadData()
-        testObserver.assertValue(employees)
+        viewModel.employees.test {
+            expectThat(expectItem()).isEqualTo(emptyList())
+            expectThat(cancelAndConsumeRemainingEvents()).isEmpty()
+        }
     }
 
     @Test
-    fun `loadData sort by role with saved state sort by name`() {
+    fun `loadData sort by role with saved state sort by name`() = runBlockingTest {
         instantiateMainViewModel(EmployeeSortBy.NAME)
         val employees = emptyList<Employee>()
         coEvery { getEmployeeUseCase(EmployeeSortBy.ROLE) } returns employees
-        val testObserver = viewModel.employees.test()
-        viewModel.loadData(EmployeeSortBy.ROLE)
-        testObserver.assertValue(employees)
+        viewModel.employees.test {
+            viewModel.loadData(EmployeeSortBy.ROLE)
+            expectThat(expectItem()).isEqualTo(emptyList())
+            expectThat(cancelAndConsumeRemainingEvents()).isEmpty()
+        }
     }
 
     @Test
-    fun `loadData sort by name with saved state sort by role`() {
+    fun `loadData sort by name with saved state sort by role`() = runBlockingTest {
         instantiateMainViewModel(EmployeeSortBy.ROLE)
         val employees = emptyList<Employee>()
         coEvery { getEmployeeUseCase(EmployeeSortBy.NAME) } returns employees
-        val testObserver = viewModel.employees.test()
-        viewModel.loadData(EmployeeSortBy.NAME)
-        testObserver.assertValue(employees)
+        viewModel.employees.test {
+            viewModel.loadData(EmployeeSortBy.NAME)
+            expectThat(expectItem()).isEqualTo(emptyList())
+            expectThat(cancelAndConsumeRemainingEvents()).isEmpty()
+        }
     }
 
     @Test
-    fun onClickRow() {
+    fun onClickRow() = runBlockingTest {
         instantiateMainViewModel()
-        val testObserver = viewModel.clickRowAction.test()
-        val employee = Employee(8, "Employee 8", "Sr. Tester")
-        viewModel.onClickRow(employee)
-        testObserver.assertValue(OneOffEvent(employee))
+        viewModel.clickRowAction.test {
+            val employee = Employee(8, "Employee 8", "Sr. Tester")
+            viewModel.onClickRow(employee)
+            expectThat(expectItem()).isEqualTo(employee)
+            expectThat(cancelAndConsumeRemainingEvents()).isEmpty()
+        }
     }
 
     @Test
-    fun onClickRowButton() {
+    fun onClickRowButton() = runBlockingTest {
         instantiateMainViewModel()
-        val testObserver = viewModel.clickRowButtonAction.test()
-        val employee = Employee(6, "Employee 6", "Team lead")
-        viewModel.onClickRowButton(employee)
-        testObserver.assertValue(OneOffEvent(employee))
+        viewModel.clickRowButtonAction.test {
+            val employee = Employee(6, "Employee 6", "Team lead")
+            viewModel.onClickRowButton(employee)
+            expectThat(expectItem()).isEqualTo(employee)
+            expectThat(cancelAndConsumeRemainingEvents()).isEmpty()
+        }
     }
 
     private fun instantiateMainViewModel(sortBy: EmployeeSortBy? = null) {
