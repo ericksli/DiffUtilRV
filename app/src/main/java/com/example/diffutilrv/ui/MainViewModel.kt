@@ -7,10 +7,11 @@ import com.example.diffutilrv.data.Employee
 import com.example.diffutilrv.data.EmployeeSortBy
 import com.example.diffutilrv.domain.GetEmployeeUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -23,10 +24,10 @@ class MainViewModel @Inject constructor(
 ) : ViewModel() {
     private val _employees = MutableStateFlow<List<Employee>>(emptyList())
     val employees: StateFlow<List<Employee>> = _employees
-    private val _clickRowAction = MutableSharedFlow<Employee>()
-    val clickRowAction: SharedFlow<Employee> = _clickRowAction
-    private val _clickRowButtonAction = MutableSharedFlow<Employee>()
-    val clickRowButtonAction: SharedFlow<Employee> = _clickRowButtonAction
+    private val _clickRowAction = Channel<Employee>(Channel.BUFFERED)
+    val clickRowAction: Flow<Employee> = _clickRowAction.receiveAsFlow()
+    private val _clickRowButtonAction = Channel<Employee>(Channel.BUFFERED)
+    val clickRowButtonAction: Flow<Employee> = _clickRowButtonAction.receiveAsFlow()
 
     fun loadData(sortBy: EmployeeSortBy? = null) {
         viewModelScope.launch {
@@ -40,10 +41,10 @@ class MainViewModel @Inject constructor(
     }
 
     fun onClickRow(employee: Employee) {
-        viewModelScope.launch { _clickRowAction.emit(employee) }
+        viewModelScope.launch { _clickRowAction.send(employee) }
     }
 
     fun onClickRowButton(employee: Employee) {
-        viewModelScope.launch { _clickRowButtonAction.emit(employee) }
+        viewModelScope.launch { _clickRowButtonAction.send(employee) }
     }
 }
